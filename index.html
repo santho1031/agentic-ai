@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic AI Ascent: Your 6-Week Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #f0f0f0;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .progress-bar-bg {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .progress-bar-fg {
+            background: linear-gradient(90deg, #4f46e5, #c026d3, #db2777);
+            transition: width 0.5s ease-in-out;
+        }
+        .day-card.completed {
+            opacity: 0.6;
+            border-left-color: #10b981;
+        }
+        .custom-checkbox:checked {
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="app" class="min-h-screen p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <header class="text-center mb-8 md:mb-12">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">Agentic AI</span> Ascent
+                </h1>
+                <p class="mt-2 text-lg text-gray-400 max-w-2xl mx-auto">Your 6-week journey to mastering AI Engineering. Track your progress, stay motivated.</p>
+                <div id="user-info" class="mt-4 text-xs text-gray-500"></div>
+            </header>
+
+            <!-- Overall Progress -->
+            <div class="mb-8 md:mb-12">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xl font-bold tracking-tight">Total Progress</h2>
+                    <span id="total-progress-text" class="text-lg font-semibold text-gray-300">0%</span>
+                </div>
+                <div class="w-full progress-bar-bg rounded-full h-4">
+                    <div id="total-progress-bar" class="progress-bar-fg h-4 rounded-full" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Weeks Grid -->
+            <main id="weeks-container" class="space-y-12">
+                <!-- Weeks will be dynamically inserted here -->
+            </main>
+             <!-- Loading/Error Modal -->
+            <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+                <div class="bg-gray-900 rounded-lg p-8 text-center">
+                    <div id="modal-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- DATA STRUCTURE ---
+        const courseData = [
+            {
+                title: "Week 1: Foundations",
+                theme: "What is an AI Agent, Really?",
+                days: [
+                    { title: "Intro to Agentic AI", focus: "Frameworks, Setup, First Workflow", teamConcept: "From Instructions to Intent", post: { type: 'animation', idea: "Animation: Code vs. Prompt" } },
+                    { title: "Agentic Patterns", focus: "Autonomy, Tool Integration, Design Patterns", teamConcept: "Blueprints for Smart Assistants", post: { type: 'infographic', idea: "Carousel: The 'ReAct' Pattern" } },
+                    { title: "Orchestrating LLMs", focus: "Comparing & Integrating GPT-4o, Claude, Gemini", teamConcept: "Building a Team of AI Brains", post: { type: 'video', idea: "Animated video: LLM specialists in a boardroom" } },
+                    { title: "Resources vs. Tools", focus: "Giving Agents Knowledge vs. Capabilities", teamConcept: "Giving Your Agent Superpowers", post: { type: 'demo', idea: "Screencast: Before/After with a Weather API" } },
+                    { title: "Project 1: Career Agent", focus: "Build & Deploy a Personal Career Chatbot", teamConcept: "Your First Agent: A Practical Build", post: { type: 'demo', idea: "Demo video of the Career Agent on Hugging Face" } },
+                ]
+            },
+            {
+                title: "Week 2: OpenAI Agents SDK",
+                theme: "Building with the Official Toolkit",
+                days: [
+                    { title: "SDK Fundamentals", focus: "Async Python, Agent, Runner, Trace", teamConcept: "The Official Lego Kit for Agents", post: { type: 'infographic', idea: "Infographic: The OpenAI SDK object model" } },
+                    { title: "Project 2: SDR Agent", focus: "Build a Sales Development Rep Agent", teamConcept: "Automating Business: The AI Sales Rep", post: { type: 'demo', idea: "Demo video: SDR Agent researching and drafting emails" } },
+                    { title: "Guardrails & Safety", focus: "Implementing safety and structured outputs", teamConcept: "Teaching Your Agent to Play by the Rules", post: { type: 'animation', idea: "Animation: Agent vs. Guardrail Shield" } },
+                    { title: "Project 3: Deep Research", focus: "Building a Planner Agent for research tasks", teamConcept: "The Power of Planning", post: { type: 'animation', idea: "Flowchart animation of a research plan" } },
+                    { title: "Research App", focus: "Deploying the multi-agent research system", teamConcept: "Assembling Your AI Research Team", post: { type: 'demo', idea: "Carousel + Link to the live Research App" } },
+                ]
+            },
+            {
+                title: "Week 3: CrewAI",
+                theme: "Teamwork Makes the AI Dream Work",
+                days: [
+                    { title: "CrewAI Concepts", focus: "Agents, Tasks, and Processing Modes", teamConcept: "Hiring Your AI Specialist Crew", post: { type: 'infographic', idea: "Org Chart for an AI Crew" } },
+                    { title: "Tools & Financial Research", focus: "Integrating Google Search and other tools", teamConcept: "Equipping Your Crew", post: { type: 'video', idea: "Explainer video: Agent getting live data access" } },
+                    { title: "Project 4: Stock Picker", focus: "Multi-agent system for investment analysis", teamConcept: "The AI Investment Committee", post: { type: 'demo', idea: "Demo video: Agents 'debating' a stock in a chat UI" } },
+                    { title: "Memory & Coding Tasks", focus: "Vector storage and code generation agents", teamConcept: "Giving Your Crew a Memory & New Skills", post: { type: 'animation', idea: "Animation: Agent using a vector DB 'brain'" } },
+                    { title: "Project 5: Eng Team", focus: "AI team for software development tasks", teamConcept: "The Autonomous AI Dev Team", post: { type: 'demo', idea: "Timelapse video: AI team building a Flask app" } },
+                ]
+            },
+            {
+                title: "Week 4: LangGraph",
+                theme: "Building AI with Flowcharts",
+                days: [
+                    { title: "LangGraph Theory", focus: "Graphs, Nodes, Edges for agent flows", teamConcept: "Putting Your Agent on Rails", post: { type: 'animation', idea: "Animation: Visually building a graph" } },
+                    { title: "State & Checkpointing", focus: "Managing state and conversations", teamConcept: "Giving Your Agent a Perfect Memory", post: { type: 'infographic', idea: "Infographic: Conversation timeline with state snapshots" } },
+                    { title: "Tool Calling", focus: "Conditional edges and dedicated tool nodes", teamConcept: "Making Tools a First-Class Citizen", post: { type: 'infographic', idea: "Code snippet carousel for tool nodes" } },
+                    { title: "Project 6: Sidekick", focus: "Building a web-browsing assistant", teamConcept: "Building Your Browser Co-Pilot", post: { type: 'demo', idea: "Live demo: Sidekick summarizing a web page" } },
+                    { title: "Feedback Loops", focus: "Worker-Evaluator pattern for self-correction", teamConcept: "Teaching the Agent to Self-Correct", post: { type: 'animation', idea: "Diagram animation of a feedback loop" } },
+                ]
+            },
+            {
+                title: "Week 5: AutoGen",
+                theme: "Letting the Agents Talk",
+                days: [
+                    { title: "AutoGen Concepts", focus: "Multi-agent conversational framework", teamConcept: "The AI Brainstorming Session", post: { type: 'infographic', idea: "Comparison: CrewAI (Assembly Line) vs. AutoGen (Roundtable)" } },
+                    { title: "Multi-modal Agents", focus: "Agents that can see and critique", teamConcept: "Agents That Can See and Critique", post: { type: 'demo', idea: "Demo: Agent analyzing a blueprint image" } },
+                    { title: "AutoGen Core", focus: "Distributed agent communications", teamConcept: "Scaling the Conversation", post: { type: 'animation', idea: "Diagram: Agents connecting to a central message bus" } },
+                    { title: "Project 7: Agent Creator", focus: "Agent that writes code for other agents", teamConcept: "AI Inception: The Agent That Builds Agents", post: { type: 'demo', idea: "'Wow' demo: Agent creating a new HaikuBot agent" } },
+                    { title: "Agent-to-Agent Messaging", focus: "Protocols for agent collaboration", teamConcept: "The Language of Agents", post: { type: 'infographic', idea: "Carousel: Code + visualization of agent messaging" } },
+                ]
+            },
+            {
+                title: "Week 6: MCP & Capstone",
+                theme: "The Universal Agentic Ecosystem",
+                days: [
+                    { title: "MCP Introduction", focus: "Hosts, Clients, Servers", teamConcept: "The USB-C for AI Tools", post: { type: 'animation', idea: "Animation: MCP as a universal hub for agents and tools" } },
+                    { title: "Build an MCP Server", focus: "Exposing custom tools securely", teamConcept: "Becoming a Tool Provider", post: { type: 'infographic', idea: "Architecture diagram of a custom MCP server" } },
+                    { title: "Remote MCP Servers", focus: "Using 3rd-party servers (Brave, Polygon)", teamConcept: "Accessing a Marketplace of Tools", post: { type: 'video', idea: "Explainer video: Simplifying tool access with MCP" } },
+                    { title: "Project 8: AI Traders", focus: "Autonomous trading floor capstone", teamConcept: "The Autonomous Trading Floor", post: { type: 'demo', idea: "Dashboard demo video of the live trading floor" } },
+                    { title: "Framework Recap", focus: "Lessons learned & framework selection", teamConcept: "Choosing the Right Tool for the Job", post: { type: 'infographic', idea: "Decision tree for choosing an agent framework" } },
+                ]
+            },
+        ];
+
+        // --- UI ELEMENTS ---
+        const weeksContainer = document.getElementById('weeks-container');
+        const totalProgressBar = document.getElementById('total-progress-bar');
+        const totalProgressText = document.getElementById('total-progress-text');
+        const userInfoDiv = document.getElementById('user-info');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content');
+
+        // --- FIREBASE SETUP ---
+        let db, auth, userId, appState;
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'agentic-ai-ascent';
+        const docId = 'progress-tracker';
+
+        function showModal(message, isError = false) {
+            modalContent.innerHTML = `<p class="${isError ? 'text-red-400' : 'text-blue-300'}">${message}</p>`;
+            modal.classList.remove('hidden');
+        }
+
+        function hideModal() {
+            modal.classList.add('hidden');
+        }
+
+        async function initializeFirebase() {
+            try {
+                showModal('Initializing...');
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                // setLogLevel('debug');
+
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        userId = user.uid;
+                        userInfoDiv.innerHTML = `User ID: <span class="font-mono">${userId}</span><br>App ID: <span class="font-mono">${appId}</span>`;
+                        listenForUpdates();
+                    } else {
+                        signIn();
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                showModal("Could not connect to the backend. Progress will not be saved.", true);
+                // Fallback to local-only mode
+                const defaultState = { weeks: courseData.map(() => ({ daysCompleted: Array(5).fill(false) })) };
+                initializeAppState(defaultState);
+            }
+        }
+
+        async function signIn() {
+             try {
+                const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (token) {
+                    await signInWithCustomToken(auth, token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Sign-in failed:", error);
+                showModal("Authentication failed. Progress might not be saved.", true);
+            }
+        }
+
+        function listenForUpdates() {
+            const docRef = doc(db, `artifacts/${appId}/public/data/agenticCourseTracker`, docId);
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    initializeAppState(docSnap.data());
+                } else {
+                    console.log("No progress document found, creating a new one.");
+                    const defaultState = { weeks: courseData.map(() => ({ daysCompleted: Array(5).fill(false) })) };
+                    setDoc(docRef, defaultState).then(() => {
+                        initializeAppState(defaultState);
+                    }).catch(e => console.error("Error creating initial document:", e));
+                }
+                hideModal();
+            }, (error) => {
+                console.error("Firestore snapshot error:", error);
+                showModal("Error listening for real-time updates. Please refresh.", true);
+            });
+        }
+
+        function initializeAppState(initialState) {
+            appState = initialState;
+            render();
+        }
+
+        async function updateProgressInDb() {
+            if (!db || !userId) return;
+            try {
+                const docRef = doc(db, `artifacts/${appId}/public/data/agenticCourseTracker`, docId);
+                await setDoc(docRef, appState);
+            } catch (error) {
+                console.error("Failed to save progress:", error);
+                showModal("Failed to save progress. Check connection.", true);
+            }
+        }
+
+        // --- RENDERING LOGIC ---
+        function getIcon(type) {
+            const icons = {
+                animation: 'film',
+                infographic: 'image',
+                video: 'video',
+                demo: 'play-circle'
+            };
+            return icons[type] || 'zap';
+        }
+
+        function handleCheckboxChange(weekIndex, dayIndex) {
+            appState.weeks[weekIndex].daysCompleted[dayIndex] = !appState.weeks[weekIndex].daysCompleted[dayIndex];
+            updateProgressInDb();
+            // The onSnapshot listener will trigger a re-render automatically.
+            // If not using onSnapshot, you would call render() here.
+        }
+
+        function render() {
+            if (!appState) return;
+            
+            weeksContainer.innerHTML = '';
+            let totalCompletedDays = 0;
+            const totalDays = courseData.length * 5;
+
+            courseData.forEach((week, weekIndex) => {
+                const weekState = appState.weeks[weekIndex];
+                const completedInWeek = weekState.daysCompleted.filter(Boolean).length;
+                totalCompletedDays += completedInWeek;
+                const weekProgress = (completedInWeek / 5) * 100;
+
+                const weekElement = document.createElement('section');
+                weekElement.innerHTML = `
+                    <div class="mb-6">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-2 gap-2">
+                             <h3 class="text-2xl md:text-3xl font-bold tracking-tight">${week.title}</h3>
+                             <p class="text-indigo-300 font-medium text-sm sm:text-base">${week.theme}</p>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-400">Week Progress</span>
+                            <span class="text-sm font-semibold text-gray-300">${Math.round(weekProgress)}%</span>
+                        </div>
+                        <div class="w-full progress-bar-bg rounded-full h-2.5">
+                            <div class="progress-bar-fg h-2.5 rounded-full" style="width: ${weekProgress}%;"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        ${week.days.map((day, dayIndex) => `
+                            <div class="day-card glass-card rounded-lg p-4 border-l-4 ${weekState.daysCompleted[dayIndex] ? 'completed border-green-500' : 'border-transparent'}">
+                                <div class="flex justify-between items-start mb-3">
+                                    <span class="font-bold text-lg">Day ${dayIndex + 1}</span>
+                                    <input type="checkbox" 
+                                        class="custom-checkbox form-checkbox h-6 w-6 rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-0 cursor-pointer"
+                                        data-week="${weekIndex}" 
+                                        data-day="${dayIndex}"
+                                        ${weekState.daysCompleted[dayIndex] ? 'checked' : ''}>
+                                </div>
+                                <h4 class="font-semibold text-base mb-1 text-gray-100">${day.title}</h4>
+                                <p class="text-xs text-gray-400 mb-3 h-10"><strong>Focus:</strong> ${day.focus}</p>
+                                <div class="bg-gray-800/50 p-2 rounded-md mb-3">
+                                    <p class="text-xs text-gray-300"><strong class="text-indigo-300">Team Concept:</strong> ${day.teamConcept}</p>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-gray-400">
+                                    <i data-lucide="${getIcon(day.post.type)}" class="w-4 h-4 text-pink-400"></i>
+                                    <span>${day.post.idea}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                weeksContainer.appendChild(weekElement);
+            });
+            
+            // Update total progress
+            const totalProgress = (totalCompletedDays / totalDays) * 100;
+            totalProgressBar.style.width = `${totalProgress}%`;
+            totalProgressText.textContent = `${Math.round(totalProgress)}%`;
+
+            // Add event listeners after rendering
+            document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const weekIndex = parseInt(e.target.dataset.week);
+                    const dayIndex = parseInt(e.target.dataset.day);
+                    handleCheckboxChange(weekIndex, dayIndex);
+                });
+            });
+
+            // Initialize Lucide icons
+            lucide.createIcons();
+        }
+
+        // --- INITIALIZATION ---
+        initializeFirebase();
+
+    </script>
+</body>
+</html>
