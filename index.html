@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentic AI Ascent: Your 6-Week Journey</title>
+    <title>Agentic AI Ascent: Your 6-Week Journey (Static Version)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,7 +54,7 @@
                     <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">Agentic AI</span> Ascent
                 </h1>
                 <p class="mt-2 text-lg text-gray-400 max-w-2xl mx-auto">Your 6-week journey to mastering AI Engineering. Track your progress, stay motivated.</p>
-                <div id="user-info" class="mt-4 text-xs text-gray-500"></div>
+                <div class="mt-4 text-xs text-gray-500">Static version - progress is not saved.</div>
             </header>
 
             <!-- Overall Progress -->
@@ -72,20 +72,10 @@
             <main id="weeks-container" class="space-y-12">
                 <!-- Weeks will be dynamically inserted here -->
             </main>
-             <!-- Loading/Error Modal -->
-            <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-                <div class="bg-gray-900 rounded-lg p-8 text-center">
-                    <div id="modal-content"></div>
-                </div>
-            </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // --- DATA STRUCTURE ---
         const courseData = [
             {
@@ -160,99 +150,25 @@
         const weeksContainer = document.getElementById('weeks-container');
         const totalProgressBar = document.getElementById('total-progress-bar');
         const totalProgressText = document.getElementById('total-progress-text');
-        const userInfoDiv = document.getElementById('user-info');
-        const modal = document.getElementById('modal');
-        const modalContent = document.getElementById('modal-content');
 
-        // --- FIREBASE SETUP ---
-        let db, auth, userId, appState;
-        
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'agentic-ai-ascent';
-        const docId = 'progress-tracker';
+        // --- APPLICATION STATE ---
+        let appState;
 
-        function showModal(message, isError = false) {
-            modalContent.innerHTML = `<p class="${isError ? 'text-red-400' : 'text-blue-300'}">${message}</p>`;
-            modal.classList.remove('hidden');
-        }
-
-        function hideModal() {
-            modal.classList.add('hidden');
-        }
-
-        async function initializeFirebase() {
-            try {
-                showModal('Initializing...');
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                // setLogLevel('debug');
-
-                onAuthStateChanged(auth, user => {
-                    if (user) {
-                        userId = user.uid;
-                        userInfoDiv.innerHTML = `User ID: <span class="font-mono">${userId}</span><br>App ID: <span class="font-mono">${appId}</span>`;
-                        listenForUpdates();
-                    } else {
-                        signIn();
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                showModal("Could not connect to the backend. Progress will not be saved.", true);
-                // Fallback to local-only mode
-                const defaultState = { weeks: courseData.map(() => ({ daysCompleted: Array(5).fill(false) })) };
-                initializeAppState(defaultState);
-            }
-        }
-
-        async function signIn() {
-             try {
-                const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                if (token) {
-                    await signInWithCustomToken(auth, token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Sign-in failed:", error);
-                showModal("Authentication failed. Progress might not be saved.", true);
-            }
-        }
-
-        function listenForUpdates() {
-            const docRef = doc(db, `artifacts/${appId}/public/data/agenticCourseTracker`, docId);
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    initializeAppState(docSnap.data());
-                } else {
-                    console.log("No progress document found, creating a new one.");
-                    const defaultState = { weeks: courseData.map(() => ({ daysCompleted: Array(5).fill(false) })) };
-                    setDoc(docRef, defaultState).then(() => {
-                        initializeAppState(defaultState);
-                    }).catch(e => console.error("Error creating initial document:", e));
-                }
-                hideModal();
-            }, (error) => {
-                console.error("Firestore snapshot error:", error);
-                showModal("Error listening for real-time updates. Please refresh.", true);
-            });
-        }
-
-        function initializeAppState(initialState) {
-            appState = initialState;
+        // --- CORE LOGIC ---
+        function initializeApp() {
+            // Create the initial state for the progress tracker. All days are incomplete.
+            appState = {
+                weeks: courseData.map(() => ({ daysCompleted: Array(5).fill(false) }))
+            };
+            // Render the initial UI.
             render();
         }
 
-        async function updateProgressInDb() {
-            if (!db || !userId) return;
-            try {
-                const docRef = doc(db, `artifacts/${appId}/public/data/agenticCourseTracker`, docId);
-                await setDoc(docRef, appState);
-            } catch (error) {
-                console.error("Failed to save progress:", error);
-                showModal("Failed to save progress. Check connection.", true);
-            }
+        function handleCheckboxChange(weekIndex, dayIndex) {
+            // Toggle the completion status for the specific day.
+            appState.weeks[weekIndex].daysCompleted[dayIndex] = !appState.weeks[weekIndex].daysCompleted[dayIndex];
+            // Re-render the entire UI to reflect the change.
+            render();
         }
 
         // --- RENDERING LOGIC ---
@@ -264,13 +180,6 @@
                 demo: 'play-circle'
             };
             return icons[type] || 'zap';
-        }
-
-        function handleCheckboxChange(weekIndex, dayIndex) {
-            appState.weeks[weekIndex].daysCompleted[dayIndex] = !appState.weeks[weekIndex].daysCompleted[dayIndex];
-            updateProgressInDb();
-            // The onSnapshot listener will trigger a re-render automatically.
-            // If not using onSnapshot, you would call render() here.
         }
 
         function render() {
@@ -328,12 +237,12 @@
                 weeksContainer.appendChild(weekElement);
             });
             
-            // Update total progress
+            // Update total progress bar and text
             const totalProgress = (totalCompletedDays / totalDays) * 100;
             totalProgressBar.style.width = `${totalProgress}%`;
             totalProgressText.textContent = `${Math.round(totalProgress)}%`;
 
-            // Add event listeners after rendering
+            // Add event listeners to the checkboxes after they are created
             document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', (e) => {
                     const weekIndex = parseInt(e.target.dataset.week);
@@ -347,7 +256,8 @@
         }
 
         // --- INITIALIZATION ---
-        initializeFirebase();
+        // Start the application when the page loads.
+        initializeApp();
 
     </script>
 </body>
